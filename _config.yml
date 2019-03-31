@@ -42,4 +42,16 @@ plugins:
 #   - vendor/gems/
 #   - vendor/ruby/
 
+defaults:
+  # _posts
+  - scope:
+      path: ""
+      type: posts
+    values:
+      layout: single
+      read_time: true
+      comments: true
+      share: true
+      related: true
+
 theme: minimal-mistakes-jekyll
