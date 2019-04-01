@@ -18,7 +18,7 @@ minimal_mistakes_skin    : "default" # "air", "aqua", "contrast", "dark", "dirt"
 locale                   : "fr-FR"
 title                    : "Data Science & Engineering"
 title_separator          : "-"
-name                     : "Alexandre Bec"
+name                     : "Minh-Hieu PHAM"
 description              : ""
 url                      : https://alexpeterbec.github.io
 baseurl                  :  # the subpath of your site, e.g. "/blog"
@@ -106,7 +106,7 @@ analytics:
 
 # Site Author
 author:
-  name             : "Alexandre Bec"
+  name             : "Minh-Hieu PHAM"
   avatar           : "/assets/images/profile.jpg"
   bio              : "Ingénieur, Data Scientist"
   location         : "Paris"
@@ -114,13 +114,13 @@ author:
   links:
     - label: "Mail"
       icon: "fas fa-fw fa-envelope-square"
-      url: mailto:alx.bec@gmail.com
+      url: mailto:hieupm.it90@gmail.com
     - label: "LinkedIn"
       icon: "fab fa-fw fa-linkedin"
-      url: "https://www.linkedin.com/in/becalexandre/"
+      url: "https://www.linkedin.com/in/minhhieupham/"
     - label: "GitHub"
       icon: "fab fa-fw fa-github"
-      url: "https://github.com/alexpeterbec/"
+      url: "https://github.com/hieupm/"
 
 # Site Footer
 footer:
