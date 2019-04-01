@@ -1,17 +1,15 @@
 # main links
 main:
-  - title: "Algos & Stats"
-    url: /st/
   - title: "Data Engineering"
     url: /engnr/
-  - title: "Machine Learning"
-    url: /ml/
-  - title: "Projets"
-    url: /projects/
-  - title: "Biblio"
-    url: /resources/
+  - title: "Data gouvernance"
+    url: /gouv/
+  - title: "Architecture"
+    url: /arc/
+  - title: "Devops et Agile"
+    url: /dagile/
   - title: "CV"
-    url: https://alexpeterbec.github.io/assets/docs/CV-Alexandre-Bec.pdf
+    url: 
 
   # - title: "About"
   #   url: https://mmistakes.github.io/minimal-mistakes/about/
