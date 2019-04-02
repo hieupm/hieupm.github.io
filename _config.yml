@@ -20,7 +20,7 @@ title                    : "Data Science & Engineering"
 title_separator          : "-"
 name                     : "Minh-Hieu PHAM"
 description              : ""
-url                      : https://alexpeterbec.github.io
+url                      : https://github.com/hieupm/
 baseurl                  :  # the subpath of your site, e.g. "/blog"
 repository               : # GitHub username/repo-name e.g. "mmistakes/minimal-mistakes"
 teaser                   : # Default teaser image "assets/images/contents/main-cover.jpg"
@@ -107,7 +107,7 @@ analytics:
 # Site Author
 author:
   name             : "Minh-Hieu PHAM"
-  avatar           : "/assets/images/profile.jpg"
+  avatar           : "./assets/images/profile.jpg"
   bio              : "Ingénieur, Data Scientist"
   location         : "Paris"
   email            :
