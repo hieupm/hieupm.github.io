@@ -37,4 +37,4 @@ The streaming context acts as the central coordinator, and that each input sourc
 
 The input is continuing to be gathered by the receiver in parallel. So at any point in time, Spark can be simultaneously processing the previous intervals batch while the receiver continues to collect new data towards the current interval. Here, in this example, it's the 3 to 4 second data which is being gathered, all while the 2 to 3 second batch is still being analyzed, stored, and then printed to the console. 
 
-![dstream-3]({{ site.url }}{{ site.baseurl }}assets/images/streaming-3.JPG "Streaming example"){: .align-center}
+![dstream-3]({{ site.url }}{{ site.baseurl }}/assets/images/streaming-3.JPG "Streaming example"){: .align-center}
