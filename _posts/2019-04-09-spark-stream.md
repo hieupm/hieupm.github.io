@@ -89,3 +89,40 @@ object KafkaTransactionProducer{
   }
 }
 ```
+
+Now, we start to build streaming consumer by firstly import the necessary package. 
+
+```java
+import org.apache.spark.sql.{Dataset, Encoders, SaveMode, SparkSession}
+import org.apache.spark.sql.functions._
+import org.apache.spark.sql.expressions.Window
+import org.apache.spark.sql.expressions.scalalang.typed
+import org.apache.spark.sql.cassandra._
+import org.apache.spark.streaming._
+import org.apache.spark.streaming.kafka._
+import com.datastax.spark.connector._
+```
+
+There a some new domain classes which will be used to store our parsed or unparsed transactions. 
+
+```java
+case class SimpleTransaction(id: Long, account_number: String, amount: Double, 
+                             date: java.sql.Date, description: String)
+case class UnparsableTransaction(id: Option[Long], originalMessage: String, exception: Throwable)
+```
+
+Next, we head down to our actual streaming logic. We've left the stream context initialization from the current sparkContext and the batchSizeDuration of 1 second which it's the time interval at which streaming data will be divided into batches
+
+```java
+val streamingContext = new StreamingContext(spark.sparkContext, Seconds(1))
+val kafkaStream = KafkaUtils.createStream(streamingContext, 
+              "localhost:2181", "transactions-group", Map("transactions"->1))
+```
+
+It should be noted that there are number of possible overloads the SparkContext initialization methods (Ref: [Documentation](https://spark.apache.org/docs/latest/api/scala/index.html#org.apache.spark.streaming.StreamingContext))
+
+```java
+val kafkaStream = KafkaUtils.createStream(streamingContext, 
+              "localhost:2181", "transactions-group", Map("transactions"->1))
+// 
+```
