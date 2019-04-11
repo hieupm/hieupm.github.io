@@ -4,7 +4,7 @@ title: "Spark - Processing Data with the Streaming API"
 excerpt: "Processing Data with the Streaming API"
 toc: true
 toc_sticky: true
-toc_label: "Processing Data with the Streaming API"
+toc_label: "Content"
 toc_icon: "terminal"
 author_profile: false
 comments: true
