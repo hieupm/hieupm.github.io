@@ -20,7 +20,7 @@ title                    : "Data Science & Engineering"
 title_separator          : "-"
 name                     : "Minh-Hieu PHAM"
 description              : ""
-url                      : https://github.com/hieupm/
+url                      : https://hieupm.github.io
 baseurl                  :  # the subpath of your site, e.g. "/blog"
 repository               : # GitHub username/repo-name e.g. "mmistakes/minimal-mistakes"
 teaser                   : # Default teaser image "assets/images/contents/main-cover.jpg"

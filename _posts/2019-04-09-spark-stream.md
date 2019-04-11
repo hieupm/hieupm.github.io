@@ -25,7 +25,7 @@ For example, our batch size will be 1:
 
 The DStream bastraction is itself built on top of RDDs, where data bucket is really just an RDD. In fact, the operations you specify for your DStreams end up translating into operations on each underlying RDD. 
 
-![dstream-2]({{ site.url }}{{ site.baseurl }}assets/images/streaming-2.JPG){: .align-center}
+![dstream-2]({{ site.url }}{{ site.baseurl }}/assets/images/streaming-2.JPG){: .align-center}
 
 By default, they work **sequentially**, following the order you specified in your application: every increase in the number of ouput jobs translates into an increase in overall batch time. So, if you do have multiple output and are looking to increase your throughput, then you can increase the parallelism via spark. 
 
