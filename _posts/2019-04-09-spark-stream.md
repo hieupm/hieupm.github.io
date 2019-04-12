@@ -124,5 +124,18 @@ It should be noted that there are number of possible overloads the SparkContext 
 ```java
 val kafkaStream = KafkaUtils.createStream(streamingContext, 
               "localhost:2181", "transactions-group", Map("transactions"->1))
-// 
+```
+
+Let's take a little bit deep drive into "consumer group id" and "per topic number" conception.  
+
+```java
+val kafkaStream = KafkaUtils.createStream(streamingContext, [ZK quorum], [consumer group id], [per-topic number of Kafka partitions to consume])
+```
+
+```
+Consumers label themselves with a consumer group name, and each record published to a topic is delivered to one consumer instance within each subscribing consumer group. Consumer instances can be in separate processes or on separate machines.
+
+If all the consumer instances have the same consumer group, then the records will effectively be load balanced over the consumer instances.
+
+If all the consumer instances have different consumer groups, then each record will be broadcast to all the consumer processes.
 ```
