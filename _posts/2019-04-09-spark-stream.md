@@ -139,3 +139,46 @@ If all the consumer instances have the same consumer group, then the records wil
 
 If all the consumer instances have different consumer groups, then each record will be broadcast to all the consumer processes.
 ```
+
+# More of the Streaming API
+
+Now let's quickly exhibit some basic methods. Firstly, we need to import some neccessary library. 
+
+```scala
+import org.apache.spark.streaming._
+import org.apache.spark.rdd._
+val ssc = new StreamingContext(sc, Seconds(5))
+val rddStream = (1 to 10).map(x => sc.makeRDD(List(x%4)))
+val testStream = ssc.queueStream(scala.collection.mutable.Queue(rddStream: _*))
+testStream.print
+ssc.remember(Seconds(60))
+val currMillis = System.currentTimeMillis
+val startTime = Time(currMillis - (currMillis % 5000))
+ssc.start
+```
+
+The setup here is that I've created a context with a 5-second batch interval, built a list of RDDs based on couting to 10, resetting to 0 on every fourth number, and then feeding that into the QStream method. This method will push out 1 RDD every interval. The next optional argument signifies that only one RDD should be consumed from the queue in every interval, and is set to true by default. 
+
+```scala
+val testStream = ssc.queueStream(scala.collection.mutable.Queue(rddStream: _*), [oneAtATime: true])
+```
+
+There's one last optional parameter, which is for providing a default RDD to handle the case where the queue runs out or is empty. This value is set as null by default if no RDD should be returned when empty.   
+
+```scala
+queueStream[T](queue: Queue[RDD[T]], oneAtATime: Boolean, defaultRDD: RDD[T])(implicit arg0: ClassTag[T]): InputDStream[T]
+```
+
+It's interessting that we can tell the streaming context to remember the last 60 seconds of data, as streaming will otherwise discard sources RDDs soon after their computation. Unless your stream is stateful,the data from the previous inputs  are kept until their pertinence to the state is gone or you need to explicitly keep the data if you're working on interactive queries. Explicit, as in you need to tell the streaming context how much trailing input should be kept via this remember method. Without this, you'll encounter exception at best, or odd, somewhat unpredictable behavior at wort. 
+
+After running the code, we can requested a slice of the RDDs behind the batches, ranging from the start of stream until 10 seconds later. 
+
+```scala
+val slicedRDDs = testStream.slice(startTime, startTime+Seconds(10))
+```
+
+As long as the RDD is still in memory, then this allows you to run queries against the underlying data outside of the stream logic itself. 
+
+Two more basic methods are count and countByValue over the stream. 
+- First is **count**, which once started, will store the count of the current batch, note that it doesn't cross batch boundaries to create a running count. That is a bit more possible once we introduce tracking state across batches. 
+- The second count function with "by value" suffix **countByValue** makes in our account, which as you might have expected, it's still batch-centric. The different is that **countByValue** creates a map of th values associated with their specific count (value -> count). In case of our example, when the "oneAtATime" parameter is true at the QStream method, the result is pretty much the same as count function described above. But if we add false as "oneAtATime", signifying to pump out the entire queue available in the first batch processing, the you'll see the aggregate counting effect. 
