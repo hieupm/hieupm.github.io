@@ -182,3 +182,14 @@ As long as the RDD is still in memory, then this allows you to run queries again
 Two more basic methods are count and countByValue over the stream. 
 - First is **count**, which once started, will store the count of the current batch, note that it doesn't cross batch boundaries to create a running count. That is a bit more possible once we introduce tracking state across batches. 
 - The second count function with "by value" suffix **countByValue** makes in our account, which as you might have expected, it's still batch-centric. The different is that **countByValue** creates a map of th values associated with their specific count (value -> count). In case of our example, when the "oneAtATime" parameter is true at the QStream method, the result is pretty much the same as count function described above. But if we add false as "oneAtATime", signifying to pump out the entire queue available in the first batch processing, the you'll see the aggregate counting effect. 
+
+# DStream "RDD" API
+
+This section is going to provide a quick overview of the available DStream methods that mimic those of the RDD API. First are the truly basic ones:
+- map(Partitions) & flatMap
+- filter
+- reduce
+- glom
+  - Ref: http://blog.madhukaraphatak.com/glom-in-spark/
+
+	![dstream-1]({{ site.url }}{{ site.baseurl }}/assets/images/glom.PNG "glom example"){: .align-center}
