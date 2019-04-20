@@ -193,3 +193,26 @@ This section is going to provide a quick overview of the available DStream metho
   - Ref: http://blog.madhukaraphatak.com/glom-in-spark/
 
 	![dstream-1]({{ site.url }}{{ site.baseurl }}/assets/images/glom.PNG "glom example"){: .align-center}
+
+- context / repartition
+  - these  work exactly the same as RDD, except  that this context is the streaming context. 
+- cache / persist
+  - The different betwen streaming API and normal batch API is that, the default persistence level in streaming context is serialized in memory (storageLevel.MEMORY_ONLY_SER). This is to reduce the garbage collection overhead of handling tons of fast-moving, separate objects by storing them as larger blobs of data, although any of the libraries network-based streaming sources will change this to add a replication factor, so as to aid in a speedier failure recovery. These methods work by taking the specified persistence level, or default if not specified, and applying it to each underlying RDD, then utilizing the **spark.cleaner.ttl** (ttl=time to live) configuraiton value to handle removing the persisted RDD from memory. At the 2.x version, this config was removed as the internal context cleaner was improved to the point of no longer needing it. Of course, if you want more fine-grain control, then you could skip caching at this level, and perform it on the RDD yourself using the foreachRDD method, and calling unpersist via another foreachRDD when you're done. The rule of thumb when deciding whether to cache or not is just about the same as with RDDs. If you're going to use the same underlying RDD more than once, then you should use caching. In fact, some of stateful methods call persist automatically, since it's known that in general, each underlying RDD will be used across multiple batches to build up the state.
+- (ssc.)union
+  - the unions work the same as the RDD ones, where the DStream version takes the first DStream and combines it with one other, and the context version can take an arbitrary number of DStreams for combination. This is useful for when you need to increase throughput by spinning up multiple stream receivers, yet still treat them as though they're one single source DStream.
+- ssc.tranform/transformWith
+  - these methods are not RDD based, provide a way to write an union and tranform in one method call, where you join multiple streams, apply a transformation, and output it all back as one single DStream.
+- PairDStream: 
+  - mapValues & flatMapValues 
+  - groupByKey
+  - reduceByKey
+  - combineByKey
+  - cogroup
+  - join
+    - fullOuterJoin
+    - leftOuterJoin
+    - rightOuterJoin
+- The persistence methods are the biggest difference where their method names are pluralized, since the action is executed more than once, which also means that the output parameter isn't one specific file, but instead a prefix and a suffix used to create a unique name comprised of this base filename prefix, followed by timestamp and the extension suffix. And although these methods are made available for generic cases, if you can find a more native extension, as we've seen with our Cassandra code, then avoid HadoopFiles is probably best, as it tends to increase overall latency. 
+  - ObjectFiles
+  - TextFiles
+  - (NewAPI) HadoopFiles
