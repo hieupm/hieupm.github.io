@@ -212,7 +212,23 @@ This section is going to provide a quick overview of the available DStream metho
     - fullOuterJoin
     - leftOuterJoin
     - rightOuterJoin
-- The persistence methods are the biggest difference where their method names are pluralized, since the action is executed more than once, which also means that the output parameter isn't one specific file, but instead a prefix and a suffix used to create a unique name comprised of this base filename prefix, followed by timestamp and the extension suffix. And although these methods are made available for generic cases, if you can find a more native extension, as we've seen with our Cassandra code, then avoid HadoopFiles is probably best, as it tends to increase overall latency. 
+- The persistence methods are the biggest difference where their method names are pluralized, since the action is executed more than once, which also means that the output parameter isn't one specific file, but instead a prefix and a suffix used to create a unique name comprised of this base filename prefix, followed by timestamp and the extension suffix. And although these methods are made available for generic cases, **if you can find a more native extension, like Cassandra code, then avoid HadoopFiles is probably best, as it tends to increase overall latency**. 
   - ObjectFiles
   - TextFiles
   - (NewAPI) HadoopFiles
+
+# Stateful Streaming
+
+We just saw how the Spark Streaming API can be used to create similar code to that of your batching logic, except now it can handle live streaming data so it's the main goal of Spark to unify the processing landscape, and cut down on the struggles of context switching between paradigms. Although there are some concepts that are fairly unique to streaming, such as working with state across a streaming period of time. So let's see some concepts to move easily create safe stateful streaming logic. 
+- **windowing**: working withe internally-batched RDDs grouped as though they're one via sliding windows of data. In this example below, the data stream is batched into RDD buckets every one second. 
+	![dstream-1]({{ site.url }}{{ site.baseurl }}/assets/images/streaming-4.PNG "glom example"){: .align-center}
+- **slide interval**, specified here as two 2s. This is the interval at which the window slides between each computation. In a nutshell, it's the amount of time for each executed computation. 
+  ![dstream-1]({{ site.url }}{{ site.baseurl }}/assets/images/streaming-5.PNG "glom example"){: .align-center}
+- **window duration**, which has been set to 3s for this example. So if slide is the time between executions, then the window is how much data is passed into that computation. So for each subsequent slide, the amount of data worked on is equivalent to the window duration. 
+  ![dstream-1]({{ site.url }}{{ site.baseurl }}/assets/images/streaming-6.PNG "glom example"){: .align-center}
+
+Notice that since our window is larger than our slide, that it actually trails back into the data from previous slide execution. So that you have to be aware of the duplication of data in each slide computation. And this will continue for every subsequent slide, with our window of data overlapping by the delta between slide and window. 
+
+![dstream-1]({{ site.url }}{{ site.baseurl }}/assets/images/streaming-7.PNG "glom example"){: .align-center}
+
+This overlap is also why window-based operations implicitly call cache, since the same RDD is typically going to be used more than once, so why not optimize for it? Also, as mentioned above, technically window duration can be set to less than the slide, but it isn't good practice, as this just result in the slide computations working against a lagging window of constantly-outdated information. 
