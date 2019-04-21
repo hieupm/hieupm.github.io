@@ -219,6 +219,13 @@ This section is going to provide a quick overview of the available DStream metho
 
 # Stateful Streaming
 
+```
+The key difference between stateful and stateless applications is that stateless applications don’t “store” data whereas stateful applications require backing storage. Stateful applications like the Cassandra, MongoDB and mySQL databases all require some type of persistent storage that will survive service restarts.
+
+Keeping state is critical to running a stateful application whereas any data that flows via a stateless service is typically transitory and the state is stored only in a separate back-end service like a database. 
+```
+Ref: https://www.bizety.com/2018/08/21/stateful-vs-stateless-architecture-overview/
+
 We just saw how the Spark Streaming API can be used to create similar code to that of your batching logic, except now it can handle live streaming data so it's the main goal of Spark to unify the processing landscape, and cut down on the struggles of context switching between paradigms. Although there are some concepts that are fairly unique to streaming, such as working with state across a streaming period of time. So let's see some concepts to move easily create safe stateful streaming logic. 
 - **windowing**: working withe internally-batched RDDs grouped as though they're one via sliding windows of data. In this example below, the data stream is batched into RDD buckets every one second. 
 	![dstream-1]({{ site.url }}{{ site.baseurl }}/assets/images/streaming-4.PNG "glom example"){: .align-center}
@@ -232,3 +239,13 @@ Notice that since our window is larger than our slide, that it actually trails b
 ![dstream-1]({{ site.url }}{{ site.baseurl }}/assets/images/streaming-7.PNG "glom example"){: .align-center}
 
 This overlap is also why window-based operations implicitly call cache, since the same RDD is typically going to be used more than once, so why not optimize for it? Also, as mentioned above, technically window duration can be set to less than the slide, but it isn't good practice, as this just result in the slide computations working against a lagging window of constantly-outdated information. 
+
+To recap, the slide is the period of time between each execution of your window logic, and the window duration deals with the amount of data involved in those executions, with the first data window being the same as the slide, if Window is equal or greater than the slide, there won't be time to build up enough data for a full window. **The window and slide intervals must be multiples of the batch timing**, as they need to make sure to work off of a completed batching bucket; otherwise you'd be working against still-incoming incomplete RDDs. 
+
+![dstream-1]({{ site.url }}{{ site.baseurl }}/assets/images/streaming-8.PNG "glom example"){: .align-center}
+
+Another important, even required topic of stateful streaming is checkpointing. It just like caching, but persists to a resilient store like HDFS or S3, instead of a more transient one. And, as already stated, it's required for any stateful operations, meaning that as soon as you start a streaming context containing a stream using a stateful method, one that results in a must checkpoint DStream, and if you have not et a checkpoint, then it'll immediately throw an exception. Why is this required component of stateful streaming? Because managing state often relies on utilizing a portion of the previous data stream instead of just the currnt one, so extra care must be made so as to avoid any potential data loss and to improve fault tolerance. That's because streaming application typically run continuously resulting in their lineages building up over time, which leads to lengthy recomputation upon recovery. Checkpointing help us to avoid having to rebuild the entire lineage from scratch. 
+
+![dstream-1]({{ site.url }}{{ site.baseurl }}/assets/images/streaming-9.PNG "glom example"){: .align-center}
+
+It instead uses the checkpoint and rebuilds directly to the last known good state, and continues on its merry streaming way. Checkpointing in Spark is not only stores your stream state, it'll also save useful metadata information to help in the case of the driver failing. 
