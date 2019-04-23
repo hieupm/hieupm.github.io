@@ -217,7 +217,7 @@ This section is going to provide a quick overview of the available DStream metho
   - TextFiles
   - (NewAPI) HadoopFiles
 
-# Stateful Streaming
+# Stateful Streaming: windowing and checkpointing
 
 ```
 The key difference between stateful and stateless applications is that stateless applications don’t “store” data whereas stateful applications require backing storage. Stateful applications like the Cassandra, MongoDB and mySQL databases all require some type of persistent storage that will survive service restarts.
@@ -249,3 +249,239 @@ Another important, even required topic of stateful streaming is checkpointing. I
 ![dstream-1]({{ site.url }}{{ site.baseurl }}/assets/images/streaming-9.PNG "glom example"){: .align-center}
 
 It instead uses the checkpoint and rebuilds directly to the last known good state, and continues on its merry streaming way. Checkpointing in Spark is not only stores your stream state, it'll also save useful metadata information to help in the case of the driver failing. 
+
+# Utilizing State for Speedy Fraud Detection
+
+In this example, we want to boost our code so we can flag down possible fraudulent transactions. We'll do this by calculating overall transaction averages, as well as averages over windows of time, and compare that data against our stored historic averages. Fisrt, we have some case classes: 
+
+```scala
+case class Account(number: String, firstName: String, lastName: String)
+case class Transaction(id: Long, account: Account, date: java.sql.Date, amount: Double, 
+                       description: String)
+case class TransactionForAverage(accountNumber: String, amount: Double, description: String, 
+                                 date: java.sql.Date)
+case class SimpleTransaction(id: Long, account_number: String, amount: Double, 
+                             date: java.sql.Date, description: String)
+case class UnparsableTransaction(id: Option[Long], originalMessage: String, exception: Throwable)
+case class AggregateData(totalSpending: Double, numTx: Int, windowSpendingAvg: Double) {
+  val averageTx = if(numTx > 0) totalSpending / numTx else 0
+}
+case class EvaluatedSimpleTransaction(tx: SimpleTransaction, isPossibleFraud: Boolean)
+```
+
+The real guts of our code is down here where the streaming logic awaits. 
+
+```scala
+val checkpointDir = "file:///checkpoint"	
+    val streamingContext = StreamingContext.getOrCreate(checkpointDir, () => {
+	    val ssc = new StreamingContext(spark.sparkContext, Seconds(5))
+		  ssc.checkpoint(checkpointDir)
+		  val kafkaStream = KafkaUtils.createStream(ssc, "localhost:2181", "transactions-group", Map("transactions"->1))
+	    kafkaStream.map(keyVal => tryConversionToSimpleTransaction(keyVal._2))
+	               .flatMap(_.right.toOption)
+				         .map(simpleTx => (simpleTx.account_number, simpleTx))
+				         .window(Seconds(10), Seconds(10))
+				         .updateStateByKey[AggregateData]((newTxs: Seq[SimpleTransaction], 
+				                                          oldAggDataOption: Option[AggregateData]) => 
+		  {
+			  val calculatedAggTuple = newTxs.foldLeft((0.0,0))((currAgg, tx) => (currAgg._1 + tx.amount, currAgg._2 + 1))
+			  val calculatedAgg = AggregateData(calculatedAggTuple._1, calculatedAggTuple._2, 
+			                             if(calculatedAggTuple._2 > 0) calculatedAggTuple._1/calculatedAggTuple._2 else 0)
+			  Option(oldAggDataOption match { 
+				  case Some(aggData) => AggregateData(aggData.totalSpending + calculatedAgg.totalSpending, 
+				                                      aggData.numTx + calculatedAgg.numTx, calculatedAgg.windowSpendingAvg)
+					case None => calculatedAgg
+				})
+		  })
+                 .transform(dStreamRDD => 
+      {
+			  val sc = dStreamRDD.sparkContext
+			  val historicAggsOption = sc.getPersistentRDDs
+					                         .values.filter(_.name == "storedHistoric").headOption
+			  val historicAggs = historicAggsOption match {
+				  case Some(persistedHistoricAggs) => 
+				    persistedHistoricAggs.asInstanceOf[org.apache.spark.rdd.RDD[(String, Double)]]
+					case None => {
+					  import com.datastax.spark.connector._  
+					  val retrievedHistoricAggs = sc.cassandraTable("finances", "account_aggregates")
+					                                .select("account_number", "average_transaction")
+						                              .map(cassandraRow => (cassandraRow.get[String]("account_number"), 
+						                                                    cassandraRow.get[Double]("average_transaction")))
+						retrievedHistoricAggs.setName("storedHistoric")
+						retrievedHistoricAggs.cache
+					}
+				}
+				dStreamRDD.join(historicAggs)
+			})
+				         .filter{ case (acctNum, (aggData, historicAvg)) => 
+				           aggData.averageTx - historicAvg > 2000 || aggData.windowSpendingAvg - historicAvg > 2000 
+				         }
+				         .print
+		  ssc
+	  })
+       
+	  streamingContext.start
+	  streamingContext.awaitTermination
+  }
+```
+- stateful code requires a checkpoint directory to be set, 
+- for a fully recovery-enabled application,your logic need to be built up inside of the getOrCreate method available on the static Spark Streaming object. 
+- Spark can handle worker failure natively, but what happens when the driver itself dies? GetOrCreate handles this by putting all of the stream setup logic inside this function, to be used for the initial run of the stream. Basically when getOrCreate is called, it'll first look for the the checking point (**checkpointDir**) data using the provided checkpoint directory, only invoking the provided logic as a fallback. 
+- Although this only makes the code able to be restarted, so you'll still need to setup some kind of supervisor to handle relaunching the driver upon failure. 
+  - if you're using Spark standalone as your cluster manager, then you can submit your application, run in cluster mode, with the supervise flag, and it'll handle it for you. 
+    ```java
+		spark-submit --deploy-mode cluster --supervise
+		```
+  - YARN cluster mode provides a restart mechanism enabled via a configuration in your YARN-site.xml (**yarn.resourcemanager.am.max-attempts**)
+  - Mesos handles restarts through its marathon orchestration platform. 
+- there of course also has to be checkpoint data to be read; otherwise, it'll just keep invoking this initial setup logic, which is why we set the checkpoint directory on the streaming context object that'll be returned out of this createOrCreate
+- the context batch is 5 seconds, so as to make reviewing our realtime stream easier. 
+- Before digging into the checkpoint method itself, let's wrap up the discussion on our creation method and some similar alternatives. There are two optional parameters.
+  
+```java
+public static StreamingContext getOrCreate(String checkpointPath, scala.Function0<StreamingContext> creatingFunc, org.apache.hadoop.conf.Configuration hadoopConf, boolean createOnError)
+```
+
+```
+Either recreate a StreamingContext from checkpoint data or create a new StreamingContext. If checkpoint data exists in the provided checkpointPath, then StreamingContext will be recreated from the checkpoint data. If the data does not exist, then the StreamingContext will be created by called the provided creatingFunc.
+Parameters:
+- checkpointPath - Checkpoint directory used in an earlier StreamingContext program
+- creatingFunc - Function to create a new StreamingContext
+- hadoopConf - Optional Hadoop configuration if necessary for reading from the file system
+- createOnError - Optional, whether to create a new StreamingContext if there is an error in reading checkpoint data. By default, an exception will be thrown on error.
+```
+
+There are also three similar, albeit experimental methods available for extracting a streaming context object. 
+- getActive
+  - As there can only be one active started streaming context, getActive is the method to statically access it. 
+- getActiveOrCreate(createFunc) and getActiveOrCreate(checkpointDir, createFunc)
+  - The getActiveOrCreate methods have two flavors, one only expects the creation function, with the primary context coming from the active running one before falling back to the provided logic, no checkpoint search is performed. Whereas the other overload is a replica of getOrCreate except the order of preference is to: 
+    - search for an inactive context, then 
+    - build one from the provided checkpoint directory 
+    - and only then falling back to the logic
+
+Now to wrap this recovery story up, let's return to discuss our setting of the checkpoint directory. The checkpoint must be explicitly set, or else this setup is mostly moot, as it'll continuously fail to find the checkpoint files and always go to the creation logic. Of course in case of stateful logic, you're somewhat covered, as it'll throw an exception as soon as you call start, but keep in mind that if you set up getOrCreate without statefull logic and do not set the checkpoint, then it won't complain, it'll just act as though it wasn't there. With that warning out of the way, let's dig into checkpoint itself. There's one more method centered around checkpointing, this one comes from the DStream **dStream.checkpoint(frequencyInterval)**, the frequencyInterval is must by a multiple of the slide duration. It's used if you're looking to trigger execution of the checkpoint process more or less frequent than the default where the default is only set if it's stateful and is either the slide duration or 10 seconds, whichever is larger. This is something that you'll typically only change if you're in need of either higher stability or higher performance, as that's the tradeoff here. If you set checkpointing to occur too often, then it'll result in a slowdown of total operation throughput. But if you set it to be too infrequent, then the recovery time suffered due to larger lineages and task sizes. If you are facing a stability or performance issue, then changing the checkpoint interval is a good starting point. And per the Spark docs, a good starting point is to set the interval to be 5 to 10 times your sliding interval, and tweak it up or down from there. 
+
+Moving on, the map and flatMap remain the same as before, with the addition of another map, keying our stream off of the account number, which will give us access to the pair DStream functions, where the majority of stateful methods reside. 
+
+```scala
+kafkaStream.map(keyVal => tryConversionToSimpleTransaction(keyVal._2))
+	        .flatMap(_.right.toOption)
+				  .map(simpleTx => (simpleTx.account_number, simpleTx))
+```
+
+However, before that, we'll chunk (**cắt lát**) our data into 10-second slides via window method marking the window and slides duration on the stream where in fact slide is optional, defaulting to be the batch interval. 
+
+```
+window(windowLength, slideInterval)	
+Return a new DStream which is computed based on windowed batches of the source DStream.
+```
+
+There are a number of other methods with window built in, all of which could be built with windows separately; however, it's always nice to simplify common cases with helpers, and some are even built with an extra hint of efficiency already in mind, so you should try one of those first. In our case, all we're looking for is the chunking, so that we can get extra insight into our data, comparing the long-running average, as well as the average of the most recent time window to historic average. And we do that by turning the transaction chunks into average data, which we carry across different iterations via the **updateStateByKey** method
+
+```scala
+.updateStateByKey[AggregateData]((newTxs: Seq[SimpleTransaction], 
+				                          oldAggDataOption: Option[AggregateData]) => 
+		  {
+			  val calculatedAggTuple = newTxs.foldLeft((0.0,0))((currAgg, tx) => (currAgg._1 + tx.amount, currAgg._2 + 1))
+			  val calculatedAgg = AggregateData(calculatedAggTuple._1, calculatedAggTuple._2, 
+			                             if(calculatedAggTuple._2 > 0) calculatedAggTuple._1/calculatedAggTuple._2 else 0)
+			  Option(oldAggDataOption match { 
+				  case Some(aggData) => AggregateData(aggData.totalSpending + calculatedAgg.totalSpending, 
+				                                      aggData.numTx + calculatedAgg.numTx, calculatedAgg.windowSpendingAvg)
+					case None => calculatedAgg
+				})
+		  })
+```
+This method groups the key value input stream, providing the newest values and the last state tied to that key, if one already exists. 
+
+# An improved stateful stream via mapWithState
+
+In the last section, we have seen UpdateStateByKey to keep state throughout our stream; however, we also learned that each iteration processes the entire state map, no matter if there's input or not. In this section, we'll learn about a more performant alternative at your disposal, but have a little bit different format, so we first have to modify our code. 
+
+```scala
+  val kafkaStream = KafkaUtils.createStream(ssc, "localhost:2181", "transactions-group", Map("transactions"->1))
+	    kafkaStream.map(keyVal => tryConversionToSimpleTransaction(keyVal._2))
+	               .flatMap(_.right.toOption)
+				         .map(simpleTx => (simpleTx.account_number, simpleTx))
+                 .mapValues(tx => List(tx))
+				         .reduceByKeyAndWindow((txs,otherTxs) => txs ++ otherTxs, (txs, oldTxs) => txs diff oldTxs, 
+				                               Seconds(10), Seconds(10))
+				         .mapWithState(
+				          StateSpec.function((acctNum:String, newTxsOpt: Option[List[SimpleTransaction]], 
+				                         aggData: State[AggregateData]) => 
+		  {
+			  val newTxs = newTxsOpt.getOrElse(List.empty[SimpleTransaction])
+				val calculatedAggTuple = newTxs.foldLeft((0.0,0))((currAgg, tx) => (currAgg._1 + tx.amount, currAgg._2 + 1))
+				val calculatedAgg = AggregateData(calculatedAggTuple._1, calculatedAggTuple._2, 
+					                         if(calculatedAggTuple._2 > 0) calculatedAggTuple._1/calculatedAggTuple._2 else 0)
+				val oldAggDataOption = aggData.getOption
+				aggData.update(
+				  oldAggDataOption match { 
+					  case Some(aggData) => 
+					    AggregateData(aggData.totalSpending + calculatedAgg.totalSpending, 
+					                  aggData.numTx + calculatedAgg.numTx, calculatedAgg.windowSpendingAvg)
+					  case None => calculatedAgg
+					}
+			  )
+        newTxs.map(tx => EvaluatedSimpleTransaction(tx, tx.amount > 4000))
+			}))
+				         .stateSnapshots
+```
+
+We're changing our value type to be a list of transactions, which we run through the reduceByKeyAndWindow method. 
+```scala
+	.mapValues(tx => List(tx))
+	.reduceByKeyAndWindow((txs,otherTxs) => txs ++ otherTxs, (txs, oldTxs) => txs diff oldTxs, Seconds(10), Seconds(10))
+```
+This replaces our simple call to window, as this reduction method is one of the helper window methods referenced in the last section. In fact, it's one that allows for an increase in performance. That's because it has the normal reduction method, where we're jsut merging lists into one blob but it also has an overload that takes inverse reduction function. This parameter provides you the new values and the old, so you can essentially substract the two and hint to the system which values have dropped from one slide to the next. This data allows the method to work only against the deltas, and boost the overall performance of the sliding window. In this case, it's as simple as using diff to act as a substraction then of course we provide the window and slide duration to complete the method. And don't worry, if there's no inverse for your reduction, then there's an overload without it, it just might not be quite as efficient. Additionally, should you not have a keyed data stream, then there are also reduced by window variants matching the keyed version. 
+
+Now we're readky for our new and improved state tracking function mapWithState. As already eluded, this method was added in Spark 1.6 and boasts a possible performance improvement up to 10 times overs updateStateByKey, and this is in large part due to the fact that it only runs through the data coming from the stream, not the joining of the stream and the existing state. This means that the performance is no longer based on the size of the state, but instead the size of the batch. **mapWithState** takes only one input, a StateSpec object, which is built by calling StateSpec.function, and passing in a function with either 3 or 4 inputs. 
+
+```scala
+.mapWithState(StateSpec.function((acctNum:String, newTxsOpt: Option[List[SimpleTransaction]], aggData: State[AggregateData]) => 
+		  {
+			  val newTxs = newTxsOpt.getOrElse(List.empty[SimpleTransaction])
+				val calculatedAggTuple = newTxs.foldLeft((0.0,0))((currAgg, tx) => (currAgg._1 + tx.amount, currAgg._2 + 1))
+				val calculatedAgg = AggregateData(calculatedAggTuple._1, calculatedAggTuple._2, 
+					                         if(calculatedAggTuple._2 > 0) calculatedAggTuple._1/calculatedAggTuple._2 else 0)
+				val oldAggDataOption = aggData.getOption
+				aggData.update(
+				  oldAggDataOption match { 
+					  case Some(aggData) => 
+					    AggregateData(aggData.totalSpending + calculatedAgg.totalSpending, 
+					                  aggData.numTx + calculatedAgg.numTx, calculatedAgg.windowSpendingAvg)
+					  case None => calculatedAgg
+					}
+			  )
+        newTxs.map(tx => EvaluatedSimpleTransaction(tx, tx.amount > 4000))
+			}))
+```
+
+In Java, this is accomplished more explicitly via the function 3 and function 4 objects. Here we're using the 3 variants, where the first parameter represents the key, the second is an optional value because it has the potential to be empty, and the third is a state object representing the state for the key. The fourth parameter function is there as it provides a time parameter to the front of the parameter list, representing the time of each processing. 
+
+Now you might see why we had to reduce our window of data into one list. Remember, updateStateByKey would provide us with each key's values for that window as one chunk, and that allowed us to easily figure out that window's average. However, since the new method is a map, it passes each iteam separately, making it harder to figure out the overall average for a given time frame. So the easiest solution here is to reduce the values and pass them in as the UpdateStateByKey did. Of course the condensed data must be able to reside in memory on a single worker, but that isn't a concern in thi scenario. With that setup, the core logic doesn't change too much. 
+
+mapWithState's output DStream is special, in that it can also return the current state stream, just as updateStateByKey did via the stateSnapShots method. And now our code is back to what it was before the change to mapWithState, albeit more performant with more possibilities of working with either the state, or the mapped values, or both. 
+
+Now there are some additional areas of interest that were implementd with this new method. Since it takes a spec object, that object has special methods to make your life simple: 
+
+```scala
+stateSpecObj.numPartitions(200)
+					.partitioner(customPartitioner)
+					.initialState(someKeyValueRDD)
+					.timeout(Seconds(30))
+```
+- numPartitions and partitioner for setting those values directly, as well as an initial state method that allows you to provide a RDD that will act as, you guessed it, the initial starting state of the state map. And last, but possibly most interesting is the timeout method, which accepts an ideal duration value. This is useful for session-based state, where you want state to drop out if thre hasn't been any input after this specified period of time. This takes us back to the reason why the input is an option. In the case where state is about to be dropped due to a timeout, it will first go through the map method one more time with an empty value. The state object even has an isTimingOut property to notify you of this. In fact, you'll see that modifying any state that's timing out will yied an exception, as this is more informational in case you want to perform some trigger based on that information. Although it should be noted that both removal and timeouts are related to the frequency of checkpointing and how much space is available. You can think of it closer to garbage collection, where calling remove acts as more of marker for the next clean up, so trusting to the exact timing here should be tested and more often considered fuzzy logic. 
+
+groupByKeyAndWindow 
+
+Sources: 
+- Comparison of Apache Streaming Processing Frameworks: Fetr Zapletal
+- ...
+
+# Increasing Stream Resiliency 
+
+In th last module, we built up our streaming code to be able to track state across batches while preparing for failure via data and metadata checkpointing. 
+
+
