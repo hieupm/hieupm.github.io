@@ -25,7 +25,7 @@ public class ProducerDemoWithCallback {
         KafkaProducer<String, String> producer = new KafkaProducer<String, String>(properties);
 
 
-        for (int i=0; i<10; i++ ) {
+        for (int i=13; i<30; i++ ) {
             // create a producer record
             ProducerRecord<String, String> record =
                     new ProducerRecord<String, String>("first_topic", "hello world " + Integer.toString(i));
@@ -46,6 +46,11 @@ public class ProducerDemoWithCallback {
                     }
                 }
             });
+            try{
+                Thread.sleep(100);}
+                catch (Exception e){
+
+            }
         }
 
         // flush data

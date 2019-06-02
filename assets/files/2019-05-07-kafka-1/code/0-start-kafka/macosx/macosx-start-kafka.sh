@@ -7,7 +7,7 @@ mkdir data/zookeeper
 # dataDir=/your/path/to/data/zookeeper
 
 # start zookeeper (make sure nothing is running on port 2181)
-zookeeper-server-start config/zookeeper.properties
+zookeeper-server-start.sh config/zookeeper.properties
 
 # Open a new terminal (we leave zookeeper running in previous terminal)
 
@@ -18,7 +18,7 @@ mkdir data/kafka
 # log.dirs=/your/path/to/data/kafka
 
 # start Kafka
-kafka-server-start config/server.properties
+kafka-server-start.sh config/server.properties
 
 # Kafka is running! 
 # Keep the two terminal windows opened
