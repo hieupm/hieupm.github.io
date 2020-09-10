@@ -1,12 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
 {% include head.html %}
+{% include javascripts.html %}
 <body>
 
   <div class="wrapper">
     {{ content }}
   </div>
+  {% comment %}
   {% include sidebar.html %}
+{% endcomment %}
+  
   
   {% include analytics.html %}
 </body>
