@@ -1,7 +1,7 @@
 ---
 layout: post
 title: Using Python to Access Web Data
-date: 2020-09-11 13:32:20 +0300
+date: 2020-09-11 2:32:20 +0200
 description: You’ll find this post in your `_posts` directory. Go ahead and edit it and re-build the site to see your changes. # Add post description (optional)
 fig-caption: # Add figcaption (optional)
 tags: [python, coursera, course]
@@ -9,9 +9,12 @@ tags: [python, coursera, course]
 ## Use-case 1: Extracting Data from JSON
 In this use-case, we'll write a Python program prompting for an URL, reading the JSON data from that URL using *urllib* and then parsing and extracting the comment counts from the JSON data, computing the sum of the numbers in the file. 
 
+- Data set 1: http://py4e-data.dr-chuck.net/comments_42.json (Sum=2553)
+- Data set 2: http://py4e-data.dr-chuck.net/comments_929141.json
+
 ### Data format
 The data consists of a number of names and comment counts in JSON as follows:
-```Json
+```json
 {
   comments: [
     {
@@ -65,4 +68,137 @@ Retrieving http://py4e-data.dr-chuck.net/comments_42.json
 Retrieved 2733 characters
 Count: 50
 Sum: 2...
+```
+
+## Use-case 2: Calling a JSON API
+In this use-case we'll write a Python program somewhat prompting for a location, contacting a web service and retrieving JSON for the web service and parsing that data, and getting the first place_id from the JSON. A place ID is a textual identifier that uniquely identifies a place as within Google Maps.
+
+### API End Points
+
+To complete this use-case, we use this API endpoint that has a static subset of the Google Data:
+
+> http://py4e-data.dr-chuck.net/json?
+
+This API uses the same parameter (address) as the Google API. This API also has no rate limit so you can test as often as you like. If you visit the URL with no parameters, you get "No address..." response.
+
+To call the API, you need to include a "key=" parameter and provide the address that you are requesting as the "address=" parameter that is properly URL encoded using the **urllib.parse.urlencode()**.
+
+Different results can be generated depending on the geojson and json endpoints. 
+
+### Sample Execution
+```bash
+$ python3 solution.py
+Enter location: South Federal University
+Retrieving http://...
+Retrieved 2433 characters
+Place id ChIJy0Uc1Zmym4gR3fmAYmWNuac
+```
+
+### Solution
+```python
+import urllib.request, urllib.parse, urllib.error
+import json
+import ssl
+
+api_key = False
+# If you have a Google Places API key, enter it here
+# api_key = 'AIzaSy___IDByT70'
+# https://developers.google.com/maps/documentation/geocoding/intro
+
+api_key = 42
+serviceurl = 'http://py4e-data.dr-chuck.net/json?'
+
+# Ignore SSL certificate errors
+ctx = ssl.create_default_context()
+ctx.check_hostname = False
+ctx.verify_mode = ssl.CERT_NONE
+
+while True:
+    address = input('Enter location: ')
+    if len(address) < 1: break
+
+    parms = dict()
+    parms['address'] = address
+    parms['key'] = api_key
+    url = serviceurl + urllib.parse.urlencode(parms)
+
+    print('Retrieving', url)
+    uh = urllib.request.urlopen(url, context=ctx)
+    data = uh.read().decode()
+    print('Retrieved', len(data), 'characters')
+
+    try:
+        js = json.loads(data)
+    except:
+        js = None
+
+    if not js or 'status' not in js or js['status'] != 'OK':
+        print('==== Failure To Retrieve ====')
+        print(data)
+        continue
+
+    #print(json.dumps(js, indent=4))
+
+    place_id = js['results'][0]['place_id']
+    print('Place id', place_id)
+```
+
+## Use-case 3: Extracting Data from XML
+In this use-case we'll write a Python prompting for a URL, reading the XML data from that URL by using urllib and then parsing and extracting the comment counts from the XML data, computing the sum of the numbers in the file.
+
+- Data set 1: http://py4e-data.dr-chuck.net/comments_42.xml (Sum=2553)
+- Data set 2: http://py4e-data.dr-chuck.net/comments_929140.xml (Sum ends with 69)
+
+### Data Format and Approach
+The data consists of a number of names and comment counts in XML as follows:
+
+```xml
+<comment>
+  <name>Matthias</name>
+  <count>97</count>
+</comment>
+```
+
+You are to look through all the '\<comment>' tags and find the '\<count>' values sum the numbers. To make the code a little simpler, we use an XPath selector string to look through the entire tree of XML for any tag named 'count' with the following line of code:
+
+> counts = tree.findall('.//count')
+
+Take a look at the Python ElementTree documentation and look for the supported XPath syntax for details, you could also work from the top of the XML down to the comments node and then loop through the child nodes of the comments node.
+
+### Sample execution
+```bash
+$ python3 solution.py
+Enter location: http://py4e-data.dr-chuck.net/comments_42.xml
+Retrieving http://py4e-data.dr-chuck.net/comments_42.xml
+Retrieved 4189 characters
+Count: 50
+Sum: 2...
+```
+
+### Solution
+```python
+import urllib.request, urllib.parse, urllib.error
+import xml.etree.ElementTree as ET
+import ssl
+
+# Ignore SSL certificate errors
+ctx = ssl.create_default_context()
+ctx.check_hostname = False
+ctx.verify_mode = ssl.CERT_NONE
+
+url = input('Enter location: ')
+handle = urllib.request.urlopen(url, context=ctx)
+
+data = handle.read()
+print('Retrieved', len(data), 'characters')
+print(data.decode())
+tree = ET.fromstring(data)
+counts = tree.findall('.//count')
+
+sum = 0
+print('Count: ', len(counts))
+for count in counts:
+    sum += int(count.text)
+
+print('Sum:', sum)
 ```
