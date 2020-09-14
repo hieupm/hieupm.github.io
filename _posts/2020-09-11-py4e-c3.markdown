@@ -2,10 +2,14 @@
 layout: post
 title: Using Python to Access Web Data
 date: 2020-09-11 2:32:20 +0200
-description: You’ll find this post in your `_posts` directory. Go ahead and edit it and re-build the site to see your changes. # Add post description (optional)
+description:  # Add post description (optional)
 fig-caption: # Add figcaption (optional)
 tags: [python, coursera, course]
 ---
+This article leverages different use-cases in the courses of **Python For Everyone Specialization (Coursera)** - showing how to treat the Internet as a source of data.  We will scrape, parse, and read web data as well as access data using web APIs.  
+
+We will work with HTML, XML, and JSON data formats in Python. These topics include variables and expressions, conditional execution (loops, branching, and try/except), functions, Python data structures (strings, lists, dictionaries, and tuples), and manipulating files.
+
 ## Use-case 1: Extracting Data from JSON
 In this use-case, we'll write a Python program prompting for an URL, reading the JSON data from that URL using *urllib* and then parsing and extracting the comment counts from the JSON data, computing the sum of the numbers in the file. 
 
@@ -202,3 +206,136 @@ for count in counts:
 
 print('Sum:', sum)
 ```
+
+## Use-case 4: Scraping Numbers from HTML using BeautifulSoup
+The program will use urllib to read the HTML from the data files below, and parse the data, extracting numbers and compute the sum of the numbers in the file.
+
+- http://py4e-data.dr-chuck.net/comments_42.html (Sum=2553)
+- http://py4e-data.dr-chuck.net/comments_929138.html (Sum ends with 6)
+
+### Data Format
+The file is a table of names and comment counts. You can ignore most of the data in the file except for lines like the following:
+
+```html
+<tr><td>Modu</td><td><span class="comments">90</span></td></tr>
+<tr><td>Kenzie</td><td><span class="comments">88</span></td></tr>
+<tr><td>Hubert</td><td><span class="comments">87</span></td></tr>
+```
+
+You are to find all the <span> tags in the file and pull out the numbers from the tag and sum the numbers.
+
+```bash
+$ python3 solution.py
+Enter - http://py4e-data.dr-chuck.net/comments_42.html
+Count 50
+Sum 2...
+```
+
+### Solution
+
+```python
+# To run this, download the BeautifulSoup zip file
+# http://www.py4e.com/code3/bs4.zip
+# and unzip it in the same directory as this file
+
+from urllib.request import urlopen
+from bs4 import BeautifulSoup
+import ssl
+
+# Ignore SSL certificate errors
+ctx = ssl.create_default_context()
+ctx.check_hostname = False
+ctx.verify_mode = ssl.CERT_NONE
+
+url = input('Enter - ')
+html = urlopen(url.rstrip(), context=ctx).read()
+soup = BeautifulSoup(html, "html.parser")
+
+# Retrieve all of the anchor tags
+sum = 0
+tags = soup('span')
+for tag in tags:
+    # Look at the parts of a tag
+    sum += int(tag.contents[0])
+
+print("Sum: ", sum)
+```
+
+## Use-case 5: Following Links in Python
+The program will use urllib to read the HTML from the data files below, extract the *"href="* vaues from the anchor tags, scan for a tag that is in a particular position relative to the first name in the list, follow that link and repeat the process a number of times and report the last name you find.
+
+- Data set 1: Start at http://py4e-data.dr-chuck.net/known_by_Fikret.html
+  - Find the link at position 3 (the first name is 1). Follow that link. Repeat this process 4 times. 
+  - The answer is the last name that you retrieve.
+    - Sequence of names: Fikret Montgomery Mhairade Butchi Anayah 
+    - Last name in sequence: Anayah
+- Data set 2: Start at http://py4e-data.dr-chuck.net/known_by_Harman.html 
+  - Find the link at position 18 (the first name is 1). Follow that link. Repeat this process 7 times. The answer is the last name that you retrieve.
+
+### Sample execution
+
+Here is a sample execution of a solution:
+```bash
+$ python3 solution.py
+Enter URL: http://py4e-data.dr-chuck.net/known_by_Fikret.html
+Enter count: 4
+Enter position: 3
+Retrieving: http://py4e-data.dr-chuck.net/known_by_Fikret.html
+Retrieving: http://py4e-data.dr-chuck.net/known_by_Montgomery.html
+Retrieving: http://py4e-data.dr-chuck.net/known_by_Mhairade.html
+Retrieving: http://py4e-data.dr-chuck.net/known_by_Butchi.html
+Retrieving: http://py4e-data.dr-chuck.net/known_by_Anayah.html
+```
+
+### Solution
+```python
+# To run this, download the BeautifulSoup zip file
+# http://www.py4e.com/code3/bs4.zip
+# and unzip it in the same directory as this file
+
+import urllib.request, urllib.parse, urllib.error
+from bs4 import BeautifulSoup
+import ssl
+import re
+
+# Ignore SSL certificate errors
+ctx = ssl.create_default_context()
+ctx.check_hostname = False
+ctx.verify_mode = ssl.CERT_NONE
+
+url = input('Enter URL: ')
+
+countInput = int(input('Enter count: '))
+positionInput = int(input('Enter position: '))
+
+# Get the Following Link by given url and following link position
+def getFollowingLink(url, position):
+    html = urllib.request.urlopen(url, context=ctx).read()
+    soup = BeautifulSoup(html, 'html.parser')
+    tags = soup('a')
+    link = ''
+    try: 
+        link = tags[position-1].get('href', None)
+        print('Retrieving:', link)
+    except:
+        print('IndexError: list index out of range')
+        quit()
+    return link
+
+# Retrieve all of the anchor tags
+followingUrl = url
+names = list()
+nameRegex = r'\S*known_by_([a-zA-Z]+)\S+'
+
+count = 0
+print('Retrieving:', followingUrl)
+while True: 
+    names.append(re.findall(nameRegex, followingUrl)[0])
+    if count < countInput:
+        followingUrl = getFollowingLink(followingUrl, positionInput)
+        count += 1
+    else: break
+
+print(names)
+```
+
