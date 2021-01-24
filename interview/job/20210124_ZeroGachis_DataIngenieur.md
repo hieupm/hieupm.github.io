@@ -72,6 +72,16 @@ De formation Bac+5 diplôme ingénieur informatique ou master informatique spéc
 
 ## Motivation
 
+### Présentation
+
+Après avoir réalisé un parcours technique et fonctionnel en parallèle au Vietnam puis en France, j’ai démarré ma carrière en tant Data Ingénieur puis Concepteur Applicatif. 
+
+Mes connaissances se focalisent principalement autour des problématiques de la data notamment l'ingénierie, l'analyse et la gouvernance de données. Je m’intéresse également les sujets de l’urbanisation applicative et la circulation des données dans l'entreprise. Les périmètres de données travaillées sont Grande Distribution, Finance, RH et l'Industrie.  
+
+Les technologies que j'utilise sont assez variées. Ce sont des technologies on-prémisse comme l'éco-système Hadoop avec la distribution Hortonwork. Ce sont des technologies cloud comme GCP. J'essaie d'être plutôt polyvalent sur l'utilisation de différentes technologies tout en alignant avec le résultat business. 
+             
+Je suis intéressé par le descriptif de poste Data Ingénieur chez Zero Gachis. 
+
 ### Pourquoi Zero Gachis
 - Adhérer à la valeur de l'entreprise;
 - Motivé par les challenges techniques/fonctionnels de la position qui conjuge avec la volonté d'élargir le périmètre de compétence; 
