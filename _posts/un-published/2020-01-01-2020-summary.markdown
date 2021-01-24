@@ -1,0 +1,16 @@
+---
+layout: post
+title: How I Rest From Work
+date: 2017-09-12 13:32:20 +0300
+description: You’ll find this post in your `_posts` directory. Go ahead and edit it and re-build the site to see your changes. # Add post description (optional)
+img: i-rest.jpg # Add image post (optional)
+fig-caption: # Add figcaption (optional)
+tags: [Holidays, Hawaii]
+---
+
+2020 là một năm đầy biến động với tất cả mọi người. Cá nhân tôi cũng không phải là ngoại lệ. Đây chắc chắn sẽ là khoảng thời gian 
+
+## Tháng 1 - Khoảng thời gian đầy do dự 
+Đây có lẽ là khoảng thời gian mà tôi sẽ không ngần ngại dành cho nó một tính từ "do dự". 
+- Quyết định thông báo nghỉ việc ở Renault để chuẩn bị cho một chuyến hành trình mang tên "về nhà". 
+- "Do dự" trong việc nhận lời làm việc ở Ubisoft 

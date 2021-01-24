@@ -19,8 +19,8 @@ Après avoir réalisé un parcours technique et fonctionnel en parallèle au Vie
 
 Mes connaissances se focalisent principalement autour des problématiques de la data notamment l'ingénierie, l'analyse et la gouvernance de données. Je m’intéresse également les sujets de l’urbanisation applicative et la circulation des données dans l'entreprise. Les périmètres de données travaillées sont Grande Distribution, Finance, RH et l'Industrie.  
 
-Les technologies utilisées sont assez variées. Du côté on-prémisse, j'utilisais principalement les composants de l'éco-système BigData Hadoop (distribution Hortonwork) notamment Spark/Scala, Oozie, Hive, Elasticsearch, Oracle. Du côté cloud, j'ai eu l'opportunité de travailler avec GCP, plus souvent avec les outils Data comme BigQuery, Data Studio, DataPrep. Mon approche est à la fois orienté business mais aussi être polyvalent sur l'utilisation de technologies. 
-
+Les technologies utilisées sont assez variées. Ce sont des technologies soit on-prémisse BigData - l'éco-système Hadoop . Mon approche est à la fois orienté business mais aussi être polyvalent sur l'utilisation de technologies. 
+             
 Pour la suite de ma carrière, j'ai la volonté élargir mon périmètre de compétence et de connaisance en travaillant sur les sujets Data Analyst et Data Architect. La digitalisation et le marketing sont des sujets que je m'intéresse. C'est pour cette raison je suis intéressé par le descriptif de poste Data Architecte/Analyst chez Orange. 
 
 #### Pourquoi Orange?
@@ -59,3 +59,9 @@ Le terme de B to B, pour "Business to Business", désigne l'activité commercial
 - Positionnement du poste par rapport d'autres intervenants du sujet: les fournisseurs de données, la communication des livrables
 - Les interlocuteurs principaux; 
 - Les perspectives du postes 
+
+
+
+Call center - Havre - céder pour une société assurance. 
+Société autour de la data 
+- schéma directeur, mise en oeuvre, stratégies, BI, Data viz
