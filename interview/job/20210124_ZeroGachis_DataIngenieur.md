@@ -116,10 +116,24 @@ Ayant l'expérience de travailler avec les différentes dérivations SQL (selon 
 Je possède 4 ans d'exprience professionnelle en France et 2 ans au Vietnam. Je n'ai pas fait de l'alternance. 
 
 **Pourrais tu nous donner tes prétentions salariales? (si tu es flexible, tu peux également nous le dire)**
-Ma prétention salariale est de 50-54k fixe annuel. 
+Ma prétention salariale est de 45-48k fixe annuel. 
 
 **As-tu des questions auxquelles l'offre n'aurait pas répondu? Des remarques? Tout simplement as-tu envie d'ajouter des points que tu n'aurais pas abordé jusqu'ici?**
 - Les processus d'alimentation de données ou plutôt la digitalisation des différentes processus avec les magasins partenaires
+- Les perspectives des sujets à réaliser
 - Les problématiques de la sécurité de données
 - Les interfaçage entre l'équipe data et les autres interlocteurs
 - J'aimerais savoir la modalité d'intégration dans le contexte de la crise sanitaire/confinement. 
+
+**Qualité**
+- Adaptabilité:
+  - Culturellement, s'adapter avec la vie en France;
+  - Professionnellement, s'adapter avec le contexte de l'entreprise, du projet et de l'équipe
+- Tolérance: Tolérance de changement et Tolérance d'acceptation (accepter et volonté d'avoir des critiques sur mes réalisations)
+- Organisé - planification en continue
+
+**Défaut**
+- Impatience
+- Carré
+- Français
+
