@@ -78,7 +78,7 @@ Après avoir réalisé un parcours technique et fonctionnel en parallèle au Vie
 
 Mes connaissances se focalisent principalement autour des problématiques de la data notamment l'ingénierie, l'analyse et la gouvernance de données. Je m’intéresse également les sujets de l’urbanisation applicative et la circulation des données dans l'entreprise. Les périmètres de données travaillées sont Grande Distribution, Finance, RH et l'Industrie.  
 
-Les technologies que j'utilise sont assez variées. Ce sont des technologies on-prémisse comme l'éco-système Hadoop avec la distribution Hortonwork. Ce sont des technologies cloud comme GCP. J'essaie d'être plutôt polyvalent sur l'utilisation de différentes technologies tout en alignant avec le résultat business. 
+Les technologies que j'utilise sont assez variées. Ce sont des data technologies on-prémisse notamment des différents outils de l'éco-système Hadoop avec la distribution Hortonwork. J'ai pu utiliser Scala et récemment Python comme langage de programmation. Je suis ouvert avec d'autre langage selon du context du sujet. Ce sont des technologies cloud comme GCP. J'essaie d'être plutôt polyvalent sur l'utilisation de différentes technologies tout en alignant avec le résultat business. 
              
 Je suis intéressé par le descriptif de poste Data Ingénieur chez Zero Gachis. 
 
